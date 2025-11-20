@@ -1,0 +1,47 @@
+% dfs/3: DFS from Start to Goal with a list of visited nodes.
+
+dfs(Start, Goal, Path) :-
+
+dfs_helper(Start, Goal, [Start], Path).
+
+
+% Base case: If Start is the same as Goal, return the path.
+
+dfs_helper(Goal, Goal, Path, Path).
+
+
+% Recursive case: Explore neighbors of the current node.
+
+dfs_helper(Start, Goal, Visited, Path) :-
+
+edge(Start, Next),
+
+\+ member(Next, Visited), % Avoid cycles by checking if the node is already visited
+
+dfs_helper(Next, Goal, [Next|Visited], Path).
+
+
+
+% Example graph edges
+
+edge(a, b).
+
+edge(a, c).
+
+edge(b, d).
+
+edge(b, e).
+
+edge(c, f).
+
+edge(d, g).
+
+edge(e, g).
+
+edge(f, h).
+
+
+
+
+% output command
+ dfs(a, g, Path).
