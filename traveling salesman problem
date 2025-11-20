@@ -1,0 +1,81 @@
+:- use_module(library(clpfd)). % for min_list/2 and other list operations
+
+
+% Distance facts (example distances between cities)
+
+dist(a, b, 10).
+
+dist(a, c, 15).
+
+dist(a, d, 20).
+
+dist(b, c, 35).
+
+dist(b, d, 25).
+
+dist(c, d, 30).
+
+
+% Ensure the distance is symmetric: dist(X, Y, D) implies dist(Y, X, D)
+
+distance(X, Y, D) :- dist(X, Y, D).
+
+distance(X, Y, D) :- dist(Y, X, D).
+
+
+% Compute the total cost of a given tour (list of cities, starting point repeated at end)
+
+tour_cost([_], 0). % Base case: a single city with no distance
+
+tour_cost([C1, C2 | Rest], Cost) :-
+
+distance(C1, C2, D), % Get the distance from C1 to C2
+
+tour_cost([C2 | Rest], SubCost), % Calculate the cost of the rest of the tour
+
+Cost is D + SubCost. % Add the current segment's cost
+
+
+% Solve the TSP problem: Find the shortest tour
+
+tsp(Start, BestPath, MinCost) :-
+
+% Get all cities by finding all unique cities from the distance facts
+
+findall(C, (dist(C, _, _); dist(_, C, _)), CitiesDup),
+
+sort(CitiesDup, Cities), % Remove duplicates (cities)
+% Remove the starting city from the list of cities
+
+delete(Cities, Start, OtherCities),
+
+
+% Generate all permutations of the other cities
+
+findall(Path, permutation(OtherCities, Path), PermPaths),
+
+
+% Add the start city to each permutation to form a complete tour
+
+findall([Start|P], member(P, PermPaths), PathsWithStart),
+
+
+% Complete each path by returning to the start city (circular tour)
+
+findall(Path, (member(P, PathsWithStart), append(P, [Start], Path)), AllTours),
+
+
+% Calculate the cost of each tour
+
+findall(Cost-Path, (member(Path, AllTours), tour_cost(Path, Cost)), CostedTours),
+
+
+% Sort the costed tours by cost (ascending order)
+
+keysort(CostedTours, [MinCost-BestPath | _]). % Select the best path
+
+
+
+% output:  
+
+tsp(a, BestPath, MinCost).
