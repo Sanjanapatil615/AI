@@ -1,0 +1,97 @@
+% --------------- Entry Point ---------------
+
+% solve_mea(+StartXY, +GoalXY, +ObstaclesList, +BoundsXY, -Path)
+solve_mea((SX,SY), (GX,GY), Obst, (MaxX,MaxY), Path) :-
+    Start = pos(SX,SY),
+    Goal = pos(GX,GY),
+    mea(Start, Goal, Obst, (MaxX,MaxY), [Start], RevPath),
+    reverse(RevPath, Path).
+
+% --------------- Goal Condition ---------------
+
+% Goal reached
+mea(Goal, Goal, _Obst, _Bds, Visited, Visited) :- !.
+
+% --------------- Main Search Logic ---------------
+
+% Expand current state using MEA ordering (best-first by heuristic)
+mea(Current, Goal, Obst, Bds, Visited, PathOut) :-
+    Current = pos(X,Y),
+    Goal = pos(GX,GY),
+    
+    % Generate valid successors not yet visited
+    findall(Succ, 
+            (neighbor(pos(X,Y), Bds, Obst, Succ), 
+             not(member(Succ, Visited))),
+            Succs),
+    % If no successors, fail (no way forward)
+    (Succs = [] -> fail ; true),
+    
+    % Score successors by heuristic (Manhattan distance)
+    score_successors(Succs, Goal, Scored),
+    
+    % Sort successors by heuristic (ascending)
+    keysort(Scored, Sorted),
+    pairs_values(Sorted, OrderedSuccs),
+    
+    % Try each successor in MEA order (backtrack if needed)
+    try_successors(OrderedSuccs, Goal, Obst, Bds, Visited, PathOut).
+
+% Try successors in order
+try_successors([S|Ss], Goal, Obst, Bds, Vis, PathOut) :-
+    mea(S, Goal, Obst, Bds, [S|Vis], PathOut);
+    try_successors(Ss, Goal, Obst, Bds, Vis, PathOut).
+
+try_successors([], _Goal, _Obst, _Bds, _Vis, _PathOut) :-
+    fail.
+
+% --------------- Neighbor Generation ---------------
+
+% Generate 4-connected neighbors (N,S,E,W) within bounds and not blocked by obstacles
+neighbor(pos(X,Y), (MaxX,MaxY), Obst, pos(X, Y1)) :-
+    (Y1 is Y+1 ; Y1 is Y-1),
+    within(1, MaxY, Y1),
+    not(blocked((X,Y1), Obst)).
+
+neighbor(pos(X,Y), (MaxX,MaxY), Obst, pos(X1, Y)) :-
+    (X1 is X+1 ; X1 is X-1),
+    within(1, MaxX, X1),
+    not(blocked((X1,Y), Obst)).
+
+% --------------- Utility Predicates ---------------
+
+% Check if the value V is within the bounds [Low, High]
+within(Low, High, V) :-
+    V >= Low,
+    V =< High.
+
+% Check if the position is blocked by an obstacle
+blocked((X,Y), Obst) :-
+    member((X,Y), Obst).
+
+% Heuristic: Manhattan distance
+h(pos(X,Y), pos(GX,GY), H) :-
+    integer(X), integer(Y),  % Ensure X and Y are instantiated
+    integer(GX), integer(GY), % Ensure GX and GY are instantiated
+    DX is abs(X-GX),
+    DY is abs(Y-GY),
+    H is DX + DY.
+
+% Score successors based on their Manhattan distance to the goal
+score_successors([], _Goal, []).
+
+score_successors([S|Ss], Goal, [H-S|Rest]) :-
+    h(S, Goal, H),
+    score_successors(Ss, Goal, Rest).
+
+% Extract values from Key-Value pairs (ISO-friendly)
+pairs_values([], []).
+
+pairs_values([_-V|T], [V|Vs]) :-
+    pairs_values(T, Vs).
+
+
+
+
+% output
+% solve_mea((1,1),(5,5),[(2,2),(3,3)],(5,5),Path).
