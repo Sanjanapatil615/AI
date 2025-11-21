@@ -1,0 +1,85 @@
+% --- Goal State ---
+goal([1,2,3,4,5,6,7,8,0]).
+
+% --- Move Definitions ---
+move(State, NewState) :-
+    nth0(Pos, State, 0),         % Find index of 0 (blank)
+    move_blank(Pos, NewPos),     % Find valid move position
+    swap(State, Pos, NewPos, NewState).
+
+% Valid moves for blank tile
+move_blank(Pos, NewPos) :-
+    member((Pos, NewPos),
+        [(0,1),(1,0),(1,2),(2,1),
+         (3,4),(4,3),(4,5),(5,4),
+         (6,7),(7,6),(7,8),(8,7),
+         (0,3),(3,0),(1,4),(4,1),
+         (2,5),(5,2),(3,6),(6,3),
+         (4,7),(7,4),(5,8),(8,5)]).
+
+% Swap two elements in a list
+swap(State, Pos1, Pos2, NewState) :-
+    nth0(Pos1, State, Val1),
+    nth0(Pos2, State, Val2),
+    set_elem(State, Pos1, Val2, Temp),
+    set_elem(Temp, Pos2, Val1, NewState).
+
+set_elem([_|T], 0, X, [X|T]).
+set_elem([H|T], I, X, [H|R]) :-
+    I > 0, I1 is I - 1,
+    set_elem(T, I1, X, R).
+
+% --- Manhattan Distance Heuristic ---
+manhattan_distance(State, H) :-
+    goal(Goal),
+    findall(D, (
+        nth0(I, State, Tile),
+        Tile \= 0,
+        nth0(J, Goal, Tile),
+        row_col(I, R1, C1),
+        row_col(J, R2, C2),
+        D is abs(R1 - R2) + abs(C1 - C2)
+    ), Ds),
+    sum_list(Ds, H).
+
+row_col(Index, Row, Col) :-
+    Row is Index // 3,
+    Col is Index mod 3.
+
+% --- Best-First Search (Greedy using heuristic only) ---
+best_first_search(Start, Solution) :-
+    best_first([[Start]], [], Solution).
+
+% Goal check
+best_first([[Node|Path]|_], _, [Node|Path]) :-
+    goal(Node), !.
+
+% Expand next path
+best_first([[Node|Path]|Paths], Visited, Solution) :-
+    findall([NewNode, Node|Path],
+        (move(Node, NewNode), \+ member(NewNode, [Node|Visited])),
+        NewPaths),
+    evaluate_and_sort(NewPaths, Paths, SortedPaths),
+    best_first(SortedPaths, [Node|Visited], Solution).
+
+% --- Evaluate and Sort Paths by Heuristic (No lambdas) ---
+evaluate_and_sort(NewPaths, Paths, Sorted) :-
+    evaluate_paths(NewPaths, PairedNew),
+    evaluate_paths(Paths, PairedOld),
+    append(PairedNew, PairedOld, Combined),
+    keysort(Combined, SortedPairs),
+    extract_paths(SortedPairs, Sorted).
+
+evaluate_paths([], []).
+evaluate_paths([[Node|Path]|Rest], [H- [Node|Path] |R]) :-
+    manhattan_distance(Node, H),
+    evaluate_paths(Rest, R).
+
+extract_paths([], []).
+extract_paths([_-P|Rest], [P|Paths]) :-
+    extract_paths(Rest, Paths).
+
+
+
+%output
+best_first_search([1,2,3,4,5,6,7,8,0], Solution).
