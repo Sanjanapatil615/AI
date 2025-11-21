@@ -1,0 +1,25 @@
+
+%code 1
+likes(ram, mango).
+girl(seema).
+like(bill, candy).
+real(rose).
+own(john, gold).
+
+
+% likes(ram,What).
+% likes(Who,What).
+% girl(Who).
+%likes(ram,mango).
+
+
+%Code 2 
+c_to_f(C, F) :- F is (C * 9 / 5) + 32.
+freezing(F):-F =< 32 .
+
+
+% output
+% c_to_f(100,X).
+% c_to_f(33,A).
+freezing(31).
+freezing(33).
